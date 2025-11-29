@@ -13,7 +13,7 @@ namespace Gangdollarff.AirElemental
         [SerializeField] private ParticleSystem _particlePref;
         [SerializeField, Range(0, 100)] private int _debuffChance = 15;
 
-        private Character _target;
+        private IDamageable _target;
 
         protected override bool IsCanCast { get => CheckCanCast(); }
 
@@ -54,11 +54,14 @@ namespace Gangdollarff.AirElemental
                 };
                 CmdApplyDamage(damage, _target.gameObject);
 
-                CmdCreateParticle(_target.Position);
+                CmdCreateParticle(_target.transform.position);
 
                 if (UnityEngine.Random.Range(1, 100) <= _debuffChance)
                 {
-                    _target.CharacterState.AddState(States.Discharge, 2, 0, Hero.gameObject, name);
+                    if (_target is Character character)
+                    {
+                        character.CharacterState.AddState(States.Discharge, 2, 0, Hero.gameObject, name);
+                    }
                 }
             }
             yield return null;
@@ -77,12 +80,12 @@ namespace Gangdollarff.AirElemental
             {
                 if (GetMouseButton)
                 {
-               //     _target = GetRaycastTarget();
+                    _target = GetRaycastTarget();
                 }
                 yield return null;
             }
 
-            targetInfo.Targets.Add(_target);
+            targetInfo.Targets.Add((ITargetable)_target);
             callbackDataSaved(targetInfo);
         }
 
