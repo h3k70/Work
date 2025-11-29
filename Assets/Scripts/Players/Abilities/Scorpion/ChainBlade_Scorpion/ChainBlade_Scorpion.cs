@@ -218,12 +218,14 @@ public class ChainBlade_Scorpion : Skill
 
     private void  DealDamage(Damage damage, GameObject hp)
     {
+        Debug.LogError("nenavizhu");
+        /*
         if (_tempTargetForDamage != hp.transform)
         {
             _tempTargetForDamage = hp.transform;
             _tempHPForDamage = hp.GetComponent<Health>();
         }
-        _tempHPForDamage.TryTakeDamage(ref damage, this);
+        _tempHPForDamage.TryTakeDamage(ref damage, this);*/
     }
 
 

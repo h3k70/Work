@@ -120,6 +120,10 @@ PrefabInstance:
       propertyPath: _hero
       value: 
       objectReference: {fileID: 1871163040516354185}
+    - target: {fileID: 6328070790821935180, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
+      propertyPath: _targetsLayers.m_Bits
+      value: 768
+      objectReference: {fileID: 0}
     - target: {fileID: 8388980576940739991, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
       propertyPath: _character
       value: 
@@ -220,6 +224,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 86614592001be724c8e1f0d3a24c0c75, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &242370089425684122 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6328070790821935180, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
+  m_PrefabInstance: {fileID: 6092456140968476374}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0eaa338de0c76e4fbe06fa8331fcfa7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TargetSeeker
 --- !u!114 &321208861123123196 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5834951345091717418, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
@@ -294,7 +309,7 @@ MonoBehaviour:
   _spawnComponent: {fileID: 5963193180723515438}
   _visionComponent: {fileID: 0}
   _auras: {fileID: 0}
-  _targetSeeker: {fileID: 0}
+  _targetSeeker: {fileID: 242370089425684122}
   _characterParent: {fileID: 0}
   _expForDieKill: 5
   _navMeshAgent: {fileID: 1780925315992858912}

@@ -1,10 +1,7 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UIElements;
 
 namespace Gangdollarff.AirElemental
 {
@@ -13,7 +10,7 @@ namespace Gangdollarff.AirElemental
         [SerializeField] private ParticleSystem _particlePref;
         [SerializeField, Range(0, 100)] private int _debuffChance = 15;
 
-        private IDamageable _target;
+        //private Character _target;
 
         protected override bool IsCanCast { get => CheckCanCast(); }
 
@@ -24,7 +21,7 @@ namespace Gangdollarff.AirElemental
         private bool CheckCanCast()
         {
             return
-                   Vector3.Distance(_target.transform.position, transform.position) <= Radius;
+                   Vector3.Distance(GetTargetCharacter().transform.position, transform.position) <= Radius;
         }
 
         public void AnimCastLight()
@@ -39,12 +36,12 @@ namespace Gangdollarff.AirElemental
 
         public override void LoadTargetData(TargetInfo targetInfo)
         {
-            _target = (Character)targetInfo.Targets[0];
+            SetTarget((Character)targetInfo.GetTargets()[0]);
         }
 
         protected override IEnumerator CastJob()
         {
-            if (_target != null)
+            if (GetTargetCharacter() != null)
             {
                 Damage damage = new Damage
                 {
@@ -52,16 +49,13 @@ namespace Gangdollarff.AirElemental
                     Type = DamageType,
                     PhysicAttackType = AttackRangeType,
                 };
-                CmdApplyDamage(damage, _target.gameObject);
+                CmdApplyDamage(damage, GetTargetCharacter().gameObject);
 
-                CmdCreateParticle(_target.transform.position);
+                CmdCreateParticle(GetTargetCharacter().Position);
 
                 if (UnityEngine.Random.Range(1, 100) <= _debuffChance)
                 {
-                    if (_target is Character character)
-                    {
-                        character.CharacterState.AddState(States.Discharge, 2, 0, Hero.gameObject, name);
-                    }
+					GetTargetCharacter().CharacterState.AddState(States.Discharge, 2, 0, Hero.gameObject, name);
                 }
             }
             yield return null;
@@ -69,23 +63,25 @@ namespace Gangdollarff.AirElemental
 
         protected override void ClearData()
         {
-            _target = null;
+            ClearTarget();
+            //_target = null;
         }
 
         protected override IEnumerator PrepareJob(Action<TargetInfo> callbackDataSaved)
         {
             TargetInfo targetInfo = new TargetInfo();
 
-            while (_target == null)
+            while (GetTargetCharacter() == null)
             {
                 if (GetMouseButton)
                 {
-                    _target = GetRaycastTarget();
+                    FindTargetCharacter();
+               //     _target = GetRaycastTarget();
                 }
                 yield return null;
             }
 
-            targetInfo.Targets.Add((ITargetable)_target);
+            targetInfo.AddTarget(GetTargetCharacter());
             callbackDataSaved(targetInfo);
         }
 

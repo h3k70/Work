@@ -14,8 +14,8 @@ public class DoubleCheliceraStrike : Skill
     [SerializeField] private float _stunDurationWithJumpBack = 2f;
     [SerializeField] private float cooldownEnergyCost = 5;
 
-    private IDamageable _target;
-    private Character _runtimeTarget;
+    //private IDamageable _target;
+    //private Character _runtimeTarget;
 
     private static readonly int DoubleCheliceraStrikeAnimTrigger = Animator.StringToHash("DoubleCheliceraStrikeAnimation");
 
@@ -34,19 +34,20 @@ public class DoubleCheliceraStrike : Skill
 
     protected override IEnumerator PrepareJob(Action<TargetInfo> callbackDataSaved)
     {
-        _runtimeTarget = null;
+        //_runtimeTarget = null;
 
-        while (_target == null)
+        while (GetTargetCharacter() == null)
         {
             if (GetMouseButton)
             {
-                _target = GetRaycastTarget();
+                FindTargetCharacter();
+                //_target = GetRaycastTarget();
 
-                if (_target != null)
+                if (GetTargetCharacter() != null)
                 {
-                    if (_target is Character characterTarget)
+                    if (GetTargetCharacter() is Character characterTarget)
                     {
-                        _runtimeTarget = characterTarget;
+                        //_runtimeTarget = characterTarget;
                         characterTarget.SelectedCircle.IsActive = true;
                     }
                 }
@@ -59,15 +60,15 @@ public class DoubleCheliceraStrike : Skill
 
         _player.Move.CanMove = false;
         TargetInfo targetInfo = new TargetInfo();
-        targetInfo.Targets.Add(_runtimeTarget);
+        targetInfo.AddTarget(GetTargetCharacter());
         callbackDataSaved(targetInfo);
     }
 
     protected override IEnumerator CastJob()
     {
-        if (_target == null) yield return null;
+        if (GetTargetCharacter() == null) yield return null;
 
-        DealDoubleCheliceraStrikeDamage(_target);
+        DealDoubleCheliceraStrikeDamage(GetTargetCharacter());
 
         cooldownEnergy.CastCooldownEnergySkill(cooldownEnergyCost, this);
 
@@ -76,14 +77,15 @@ public class DoubleCheliceraStrike : Skill
 
     private bool IsTargetInRange()
     {
-        return _target != null &&
-            Vector3.Distance(_target.transform.position, transform.position) <= Radius &&
-            NoObstacles(_target.transform.position, transform.position, _obstacle);
+        return GetTargetCharacter() != null &&
+            Vector3.Distance(GetTargetCharacter().transform.position, transform.position) <= Radius &&
+            NoObstacles(GetTargetCharacter().transform.position, transform.position, _obstacle);
     }
 
     private void HandleSkillCanceled()
     {
-        _target = null;
+        ClearTarget();
+        //_target = null;
         _isCanCancle = true;
     }
 
@@ -124,12 +126,13 @@ public class DoubleCheliceraStrike : Skill
 
     public override void LoadTargetData(TargetInfo targetInfo)
     {
-        if (targetInfo.Targets.Count > 0) _target = (Character)targetInfo.Targets[0];
+        if (targetInfo.GetTargets().Count > 0) SetTarget((Character)targetInfo.GetTargets()[0]);
         _isCanCancle = false;
     }
 
     protected override void ClearData()
     {
-        _target = null;
+        ClearTarget();
+        //_target = null;
     }
 }

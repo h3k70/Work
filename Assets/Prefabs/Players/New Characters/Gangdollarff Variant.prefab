@@ -7414,10 +7414,6 @@ PrefabInstance:
       value: "\u0411\u043E\u0433"
       objectReference: {fileID: 0}
     - target: {fileID: 5950354320950511597, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
-      propertyPath: _talents.Array.data[0]._talentRow.Array.size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5950354320950511597, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
       propertyPath: _talents.Array.data[0]._talentGroup.Array.size
       value: 3
       objectReference: {fileID: 0}
@@ -7481,10 +7477,6 @@ PrefabInstance:
       propertyPath: '_talents.Array.data[2]._talentGroup.Array.data[3]'
       value: 
       objectReference: {fileID: 4967712319262753113}
-    - target: {fileID: 5950354320950511597, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
-      propertyPath: _talents.Array.data[0]._talentRow.Array.data[0].Talents.Array.size
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 7849522353126173969, guid: 3a165d79672ade54ba8ca1306e0c922d, type: 3}
       propertyPath: 'm_ActiveFontFeatures.Array.data[0]'
       value: 1801810542
@@ -8150,8 +8142,8 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  _isTalentSpell: 0
-  _isSkillActive: 1
+  _isTalentSpell: 1
+  _isSkillActive: 0
   _abilityInfo: {fileID: 11400000, guid: b95f67b7aed6e464292ebf37483ccc21, type: 2}
   _isSubjectToGlobalCooldownTime: 1
   _skillEnergyCosts: []
@@ -8338,7 +8330,7 @@ MonoBehaviour:
   syncInterval: 0
   _isTalentSpell: 0
   _isSkillActive: 1
-  _abilityInfo: {fileID: 11400000, guid: d0a72eef0d1e7e545826c4dac290e16b, type: 2}
+  _abilityInfo: {fileID: 11400000, guid: 83e21c29a8358a84c98e9e3409e72dce, type: 2}
   _isSubjectToGlobalCooldownTime: 1
   _skillEnergyCosts: []
   _additionalSkillEnergyCosts: []

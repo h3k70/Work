@@ -14,25 +14,25 @@ public class CleavingBlade_Scorpion : Skill
     [SerializeField] private GameObject blade;
 
     [SyncVar] private int _counter = 1;
-    private Character _target;
+    //private Character _target;
     private Character _runtimeTarget;
 
     private bool isCleavingBlade_ScorpionSecondTalent;
 
     public float DamageRange => Random.Range(_minDamage, _maxDamage);
 
-    protected override bool IsCanCast => _target != null && Vector3.Distance(_target.transform.position, transform.position) <= Radius;
+    protected override bool IsCanCast => GetTargetCharacter() != null && Vector3.Distance(GetTargetCharacter().transform.position, transform.position) <= Radius;
     protected override int AnimTriggerCastDelay => 0;
     protected override int AnimTriggerCast => Animator.StringToHash("Cast Blade");
 
     private void OnDisable() => OnSkillCanceled -= HandleSkillCanceled;
     private void OnEnable() => OnSkillCanceled += HandleSkillCanceled;
 
-    private void HandleSkillCanceled() => _target = null;
+    private void HandleSkillCanceled() => ClearTarget();
 
     public override void LoadTargetData(TargetInfo targetInfo)
     {
-        _target = (Character)targetInfo.Targets[0];
+        SetTarget((Character)targetInfo.GetTargets()[0]);
     }
 
     private void AttackPassed(bool shouldIncreaseCounter, Character target)
@@ -57,8 +57,8 @@ public class CleavingBlade_Scorpion : Skill
         {
             _counter = _counter == 3 ? 1 : _counter + 1;
         }
-
-        _target = null;
+        ClearTarget();
+        //_target = null;
     }
 
     private void AttackMissed()
@@ -67,28 +67,29 @@ public class CleavingBlade_Scorpion : Skill
         _counter = 1;
         _comboCounter.ResetCounter();
 
-        _target = null;
+        //_target = null;
     }
 
     protected override IEnumerator PrepareJob(Action<TargetInfo> callbackDataSaved)
     {
-        while (_target == null)
+        while (GetTargetCharacter() == null)
         {
             if (GetMouseButton)
             {
+                FindTargetCharacter();
                 //_target = GetRaycastTarget(true);
             }
             yield return null;
         }
 
         TargetInfo targetInfo = new();
-        targetInfo.Targets.Add(_target);
+        targetInfo.AddTarget(GetTargetCharacter());
         callbackDataSaved(targetInfo);
     }
 
     protected override IEnumerator CastJob()
     {
-        _runtimeTarget = _target;
+        _runtimeTarget = GetTargetCharacter();
         TryAttack(true, 1f);
         yield return null;
     }

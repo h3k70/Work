@@ -7,7 +7,6 @@ using UnityEngine;
 public class PhysicalAttack : Skill
 {
 	//[SerializeField] private float _damage = 8f;
-	[SerializeField] private HeroComponent _playerLinks;
 	[SerializeField] private SeriesOfStrikes _combo;
 	[SerializeField] private AudioClip[] Hits;
 
@@ -25,7 +24,7 @@ public class PhysicalAttack : Skill
 	private bool _isRightKick = true;
 	private Animator _animator;
 
-	protected Character _target;
+	//protected Character _target;
 
 	private static readonly int RightKickTrigger = Animator.StringToHash("RightKick");
 	private static readonly int LeftKickTrigger = Animator.StringToHash("LeftKick");
@@ -34,7 +33,7 @@ public class PhysicalAttack : Skill
 
 	protected override int AnimTriggerCast => _animTriggerToUse = UnityEngine.Random.value > 0.5f ? RightKickTrigger : LeftKickTrigger;
 
-	protected override bool IsCanCast => _target != null && Vector3.Distance(_target.transform.position, transform.position) <= Radius && NoObstacles(_target.transform.position, transform.position, _obstacle);
+	protected override bool IsCanCast => GetTargetCharacter() != null && Vector3.Distance(GetTargetCharacter().transform.position, transform.position) <= Radius && NoObstacles(GetTargetCharacter().transform.position, transform.position, _obstacle);
 	private bool IsAllyTarget(Character target) => target.gameObject.layer == LayerMask.NameToLayer("Allies");
 
 	private void Start()
@@ -42,15 +41,15 @@ public class PhysicalAttack : Skill
 		_audioSource = GetComponent<AudioSource>();
 		_animator = GetComponent<Animator>();
 
-		for (int i = 0; i < _playerLinks.Resources.Count; i++)
+		for (int i = 0; i < Hero.Resources.Count; i++)
 		{
-			if (_playerLinks.Resources[i].Type == ResourceType.Energy)
+			if (Hero.Resources[i].Type == ResourceType.Energy)
 			{
-				_energy = (Energy)_playerLinks.Resources[i];
+				_energy = (Energy)Hero.Resources[i];
 			}
-			if (_playerLinks.Resources[i].Type == ResourceType.Rune)
+			if (Hero.Resources[i].Type == ResourceType.Rune)
 			{
-				_rune = (RuneComponent)_playerLinks.Resources[i];
+				_rune = (RuneComponent)Hero.Resources[i];
 			}
 		}
 	}
@@ -59,31 +58,32 @@ public class PhysicalAttack : Skill
 	{
 		TargetInfo targetInfo = new TargetInfo();
 
-		if (_target != null)
+		if (GetTargetCharacter() != null)
 		{
-			_hero.Move.LookAtTransform(_target.transform);
-			targetInfo.Targets.Add(_target);
-			targetInfo.Points.Add(_target.transform.position);
+			_hero.Move.LookAtTransform(GetTargetCharacter().transform);
+			targetInfo.AddTarget(GetTargetCharacter());
+			targetInfo.Points.Add(GetTargetCharacter().transform.position);
 			callbackDataSaved?.Invoke(targetInfo);
 			yield break;
 		}
 
-		while (_target == null)
+		while (GetTargetCharacter() == null)
 		{
 			if (GetMouseButton)
 			{
-				_target = GetTarget().character;
+				FindTargetCharacter();
+				//_target = GetTarget().character;
 
-				if (_target != null)
+				if (GetTargetCharacter() != null)
 				{
-					if (IsAllyTarget(_target) || _target == Hero)
+					if (IsAllyTarget(GetTargetCharacter()) || GetTargetCharacter() == Hero)
 					{
-						_target = null;						
+						ClearTarget();						
 					}
 					else
 					{
-						_target.SelectedCircle.IsActive = true;
-						_hero.Move.LookAtTransform(_target.transform);
+						GetTargetCharacter().SelectedCircle.IsActive = true;
+						_hero.Move.LookAtTransform(GetTargetCharacter().transform);
 						break;
 					}
 				}
@@ -91,14 +91,14 @@ public class PhysicalAttack : Skill
 			yield return null;
 		}
 
-		targetInfo.Targets.Add(_target);
-		targetInfo.Points.Add(_target.transform.position);
+		targetInfo.AddTarget(GetTargetCharacter());
+		targetInfo.Points.Add(GetTargetCharacter().transform.position);
 		callbackDataSaved?.Invoke(targetInfo);
 	}
 
 	protected override IEnumerator CastJob()
 	{
-		if (_target == null || _animator == null) yield break;
+		if (GetTargetCharacter() == null || _animator == null) yield break;
 		yield break;
 	}
 
@@ -114,14 +114,14 @@ public class PhysicalAttack : Skill
 
 	public void ApplyAttackDamage()
 	{
-		if (_target == null) return;
+		if (GetTargetCharacter() == null) return;
 
-		if (_seriesPhysicalTalent) Hit(_target);
-		else SingleHit(_target);
+		if (_seriesPhysicalTalent) Hit(GetTargetCharacter());
+		else SingleHit(GetTargetCharacter());
 
 		if (!_hero.Abilities.SkillQueue.Skills.Contains(this))
 		{
-			_target = null;
+			ClearTarget();
 		}
 		CmdPlayShotSound();
 	}
@@ -226,6 +226,7 @@ public class PhysicalAttack : Skill
 
 	private void SingleHit(Character enemy)
 	{
+		Debug.Log("Single hit");
 		float curDamage = _damageValue + UnityEngine.Random.Range(0, 2);
 
 		Damage damage = new Damage
@@ -241,17 +242,17 @@ public class PhysicalAttack : Skill
 	private void CmdState(GameObject enemy, float time)
 	{
 		Character enemyChar = enemy.GetComponent<Character>();
-		enemyChar.CharacterState.AddState(States.Stun, time, 0, _playerLinks.gameObject, name);
+		enemyChar.CharacterState.AddState(States.Stun, time, 0, Hero.gameObject, name);
 		Debug.Log("added state");
 	}
 
 	private void PushBackEnemy(Character enemy)
 	{
-		Vector3 lookDir = (_target.transform.position - _playerLinks.transform.position).normalized;
-		Vector3 jumpPos = lookDir * 1 + _target.transform.position;
-		if (!CheckObstacleBetween(_playerLinks.transform.position, jumpPos))
+		Vector3 lookDir = (GetTargetCharacter().transform.position - Hero.transform.position).normalized;
+		Vector3 jumpPos = lookDir * 1 + GetTargetCharacter().transform.position;
+		if (!CheckObstacleBetween(Hero.transform.position, jumpPos))
 		{
-			CmdPush(_target.gameObject, jumpPos);
+			CmdPush(GetTargetCharacter().gameObject, jumpPos);
 			//прыгать до препятствия
 		}
 	}
@@ -332,12 +333,13 @@ public class PhysicalAttack : Skill
 
 	public override void LoadTargetData(TargetInfo targetInfo)
 	{
-		if (targetInfo.Targets.Count > 0) _target = (Character)targetInfo.Targets[0];
+		if (targetInfo.GetTargets().Count > 0) SetTarget((Character)targetInfo.GetTargets()[0]);
 	}
 
     protected override void ClearData()
     {
-		_target = null;
+		ClearTarget();
+		//_target = null;
 		_hero.Move.StopLookAt();
 	}
 }

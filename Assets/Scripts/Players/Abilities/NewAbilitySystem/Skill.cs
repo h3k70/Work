@@ -27,14 +27,16 @@ public class SkillEnergyCost
         resourceCost = baseCost;
     }
 }
-
+/*
 public class TargetToShot
 {
     public Vector3 Position;
+    public ITargetable targetable;
+
     public Character character;
     public IDamageable damageable;
     public bool isCharater = false;
-}
+}*/
 
 public enum Schools
 {
@@ -77,6 +79,7 @@ public enum AutoAttack
     autoAttack,
     nonAutoAttack
 }
+
 public enum DamageType
 {
 	Magical,
@@ -159,7 +162,6 @@ public abstract class Skill : NetworkBehaviour
     protected Coroutine _castStreamCoroutine;
     protected Coroutine _dynamicRendererJob;
     protected Transform _tempTargetForDamage;
-    protected Health _tempHPForDamage;
     protected IDamageable _tempForDamage;
     protected IHealingable _tempForHealing;
     protected bool _isPlayCastAnim;
@@ -180,6 +182,7 @@ public abstract class Skill : NetworkBehaviour
     private List<Coroutine> _currentChargeCooldownJob;
     private Queue<TargetInfo> _targetInfoQueue = new();
     private bool _isAutoMode;
+    private ITargetable _target;
 
     public bool IsAutoMode
     {
@@ -321,9 +324,9 @@ public abstract class Skill : NetworkBehaviour
             {
                 case SkillType.Target:
 
-                    if (temp.Targets.Count > 0)
+                    if (temp.GetTargets().Count > 0)
                     {
-                        foreach (var target in temp.Targets)
+                        foreach (var target in temp.GetTargets())
                             if (Vector3.Distance(target.Position, transform.position) > Radius)
                                 return false;
 
@@ -336,9 +339,9 @@ public abstract class Skill : NetworkBehaviour
 
                 case SkillType.Projectile:
 
-                    if (temp.Targets.Count > 0)
+                    if (temp.GetTargets().Count > 0)
                     {
-                        foreach (var target in temp.Targets)
+                        foreach (var target in temp.GetTargets())
                             if (Vector3.Distance(target.Position, transform.position) > Radius)
                                 return false;
 
@@ -359,9 +362,9 @@ public abstract class Skill : NetworkBehaviour
 
                         return true;
                     }
-                    else if (temp.Targets.Count > 0)
+                    else if (temp.GetTargets().Count > 0)
                     {
-                        foreach (var target in temp.Targets)
+                        foreach (var target in temp.GetTargets())
                             if (Vector3.Distance(target.Position, transform.position) > Radius)
                                 return false;
 
@@ -410,6 +413,69 @@ public abstract class Skill : NetworkBehaviour
             _currentChargers = 1;
     }
 
+    public ITargetable GetTarget(bool canGetDead = false)
+    {
+		Debug.Log("Try tar " + _target);
+		if (_target != null)
+        {
+            if (!_target.IsTargetable && !canGetDead) return null;
+
+            return _target;
+        }
+        return null;
+    }
+
+	public Character GetTargetCharacter(bool canGetDead = false)
+	{
+        Debug.Log("Try char" + _target);
+		if (_target != null)
+		{
+			if (!_target.IsTargetable && !canGetDead) return null;
+
+			return (Character)_target;
+		}
+		return null;
+	}
+
+	public void SetTargetCharacter(Character character)
+    {
+        _target = character;
+    }
+
+	public void SetTarget(ITargetable character)
+	{
+		_target = character;
+	}
+
+	protected void FindTarget(bool canTargetHimself = false, bool canTargetDead = false)
+    {
+        if (canTargetDead)
+        {
+            _target = GetCloserTargets(GetMousePoint(), Radius, canTargetHimself)[0];
+        }
+        else
+        {
+            _target = GetCloserTargets(GetMousePoint(), Radius, canTargetHimself).FirstOrDefault(target => target.IsTargetable);
+		}
+	}
+
+	protected void FindTargetCharacter(bool canTargetHimself = false, bool canTargetDead = false)
+	{
+		if (canTargetDead)
+		{
+			_target = GetCloserTargetsCharacter(GetMousePoint(), Radius, canTargetHimself)[0];
+		}
+		else
+		{
+			_target = GetCloserTargetsCharacter(GetMousePoint(), Radius, canTargetHimself).FirstOrDefault(target => target.IsTargetable);
+		}
+	}
+
+	public void ClearTarget()
+    {
+        _target = null; 
+    }
+
     public void EnableSkillBoost()
     {
         SkillEnableBoostLogic();
@@ -436,7 +502,6 @@ public abstract class Skill : NetworkBehaviour
 				//var currentResourceValue = _hero.Resources.Where(r => r.Type == skillCost.resourceType);
 				var resource = _hero.Resources.First(r => r.Type == skillCost.resourceType);
                 resource.PhantomValueShow(skillCost.resourceCost);
-				//resourse.
             }
             _actionWrapperForPreparingCoroutine = StartCoroutine(ActionWrapperForPreparingJob());
             return true;
@@ -464,12 +529,10 @@ public abstract class Skill : NetworkBehaviour
 
                 LoadTargetData(targetInfo);
 
-                if (targetInfo.Targets.Count > 0)
+                if (targetInfo.GetTargets().Count > 0)
                 {
-                    if (targetInfo.Targets[0] is Character target)
-                    {
-                        _hero.Move.LookAtTransform(target.transform);
-                    }
+                    var target = (Character)targetInfo.GetTargets()[0];
+                    _hero.Move.LookAtTransform(target.transform);
                 }
 
                 if (targetInfo.Points.Count > 0)
@@ -507,8 +570,9 @@ public abstract class Skill : NetworkBehaviour
 
                 if (_targetInfoQueue.Count > 0)
                 {
-                    if (targetInfo.Targets[0] is Character target)
+                   if (targetInfo.GetTargets().Count > 0)
                     {
+                        var target = (Character)targetInfo.GetTargets()[0];
                         _hero.Move.LookAtTransform(target.transform);
                     }
 
@@ -710,7 +774,6 @@ public abstract class Skill : NetworkBehaviour
             _hero.Resources.Where(r => r.Type == skillCost.resourceType).Sum(r => r.CurrentValue) >= Buff.ManaCost.GetBuffedValue(skillCost.resourceCost));
     }
 
-
     public void AddMaxChargeCount()
     {
         _maxCharges += 1;
@@ -719,13 +782,8 @@ public abstract class Skill : NetworkBehaviour
 
         _currentChargers += 1;
 
-
-        Debug.Log("Зачем эта строка? крашит игру");
-        //_currentChargeCooldownJob.Add(null);
-
         CurrentChargeChanged?.Invoke(_currentChargers);
     }
-
 
     public void ReductionCooldownForAllCharges(float reductionTime, float reductionPercentage = 0)
     {
@@ -840,6 +898,7 @@ public abstract class Skill : NetworkBehaviour
             _skillRender.StartDrawLineForZone(this);
         }
     }
+
     protected virtual void StopAutoDrawRadius() => _skillRender.StopDrawRadius();
 
     protected virtual void StopAutoDraw()
@@ -894,17 +953,22 @@ public abstract class Skill : NetworkBehaviour
         return TryPayCost(_skillEnergyCosts, startCooldown);
     }
 
-    protected IDamageable GetRaycastTarget(bool isCanTargetHimself = false)
+   /* protected IDamageable GetRaycastTarget(bool isCanTargetHimself = false)
     {
         return _hero.TargetSeeker.GetRaycastTarget(this, isCanTargetHimself);
-	}
+	}*/
 
-    public List<Character> GetCloserTargets(Vector3 position, float radius, bool isCanTargetHimself = false)
+    public List<ITargetable> GetCloserTargets(Vector3 position, float radius, bool isCanTargetHimself = false)
     {
         return _hero.TargetSeeker.GetCloserTargets(position, radius, isCanTargetHimself);
     }
 
-    protected bool IsTargetInRadius(float radius, Transform target)
+	public List<Character> GetCloserTargetsCharacter(Vector3 position, float radius, bool isCanTargetHimself = false)
+	{
+		return _hero.TargetSeeker.GetCloserTargetsCharacter(position, radius, isCanTargetHimself);
+	}
+
+	protected bool IsTargetInRadius(float radius, Transform target)
     {
         if (target == null)
             return false;
@@ -999,23 +1063,21 @@ public abstract class Skill : NetworkBehaviour
         return Vector3.zero;
     }
 
-    /*
-    public void IncreaseCooldownTimeCharge(float time)
-    {
-        for (int i = 0; i < RemainingCooldownTimeCharge.Count; i++)
-        {
-            if (time < _remainingCooldownTimeChargers[i])
-                return;
+	/*protected TargetToShot GetTarget(bool isCanTargetHimself = false)
+	{
+		return _hero.TargetSeeker.GetTarget(_click, ClickPoint, _skillType, Radius, this, isCanTargetHimself);
+	}*/
 
-            if (_currentChargeCooldownJob[i] != null)
-                StopCoroutine(_currentChargeCooldownJob[i]);
+	protected ITargetable ClosedTarget(bool isCanTargetHimself = false)
+	{
+		return _hero.TargetSeeker.ClosedTarget(isCanTargetHimself);
+	}
+	protected Character ClosedTargetCharacter(bool isCanTargetHimself = false)
+	{
+		return _hero.TargetSeeker.ClosedTargetCharacter(isCanTargetHimself);
+	}
 
-            _currentChargeCooldownJob[i] = StartCoroutine(RechargeOneChargeCoroutine(i, time));
-        }
-    }
-    */
-
-    public bool TryUseCharge()
+	public bool TryUseCharge()
     {
         if (_isUseCharges == false)
             return true;
@@ -1088,16 +1150,6 @@ public abstract class Skill : NetworkBehaviour
             }
         }
         _rechargeJob = null;
-    }
-
-    protected TargetToShot GetTarget(bool isCanTargetHimself = false)
-    {
-        return _hero.TargetSeeker.GetTarget(_click, ClickPoint, _skillType, Radius, this, isCanTargetHimself);
-    }
-
-    protected Character ClosedTarget(bool isCanTargetHimself = false)
-    {
-        return _hero.TargetSeeker.ClosedTarget(isCanTargetHimself);
     }
 
     private bool IsValidTarget(IDamageable target)
@@ -1265,9 +1317,9 @@ public abstract class Skill : NetworkBehaviour
         //test
         if (_targetInfoQueue.TryPeek(out TargetInfo info))
         {
-            if (info.Targets.Count > 0)
+            if (info.GetTargets().Count > 0)
             {
-                if (info.Targets[0] is Character targetCharacter && targetCharacter != _hero)
+                if (info.GetTargets()[0] is Character targetCharacter && targetCharacter != _hero)
                 {
                     targetCharacter.UIComponent.CircleSelect1.IsActive = false;
                 }
