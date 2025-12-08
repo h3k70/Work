@@ -60,7 +60,10 @@ public class TestH3 : Skill
 
     public override void LoadTargetData(TargetInfo targetInfo)
     {
-        SetTarget((Character)targetInfo.GetTargets()[0]);
+        if (targetInfo.GetTargets().Count > 0)
+        {
+            SetTarget((Character)targetInfo.GetTargets()[0]);
+        }
         _targetPoint = targetInfo.Points[0];
     }
 

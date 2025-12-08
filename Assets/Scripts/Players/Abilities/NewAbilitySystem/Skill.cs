@@ -82,18 +82,18 @@ public enum AutoAttack
 
 public enum DamageType
 {
-	Magical,
-	Physical,
-	DOTPhys,
-	DOTMag,
-	Both,
-	None
+    Magical,
+    Physical,
+    DOTPhys,
+    DOTMag,
+    Both,
+    None
 }
 
 public enum AttackRangeType
 {
-	MeleeAttack,
-	RangeAttack,
+    MeleeAttack,
+    RangeAttack,
 }
 
 public abstract class Skill : NetworkBehaviour
@@ -178,11 +178,14 @@ public abstract class Skill : NetworkBehaviour
     private bool _isPreparing = false;
     private bool _isCasting = false;
     private TypeClick _click;
-	private List<float> _remainingCooldownTimeChargers = new();
+    private List<float> _remainingCooldownTimeChargers = new();
     private List<Coroutine> _currentChargeCooldownJob;
     private Queue<TargetInfo> _targetInfoQueue = new();
     private bool _isAutoMode;
     private ITargetable _target;
+    private ITargetable _tempTarget;
+
+
 
     public bool IsAutoMode
     {
@@ -392,7 +395,7 @@ public abstract class Skill : NetworkBehaviour
     protected abstract void ClearData();
 
     protected virtual void SkillEnableBoostLogic() { }
-    
+
     protected virtual void SkillDisableBoostLogic() { }
 
     public void Init(SkillRenderer render, Character hero)
@@ -415,8 +418,7 @@ public abstract class Skill : NetworkBehaviour
 
     public ITargetable GetTarget(bool canGetDead = false)
     {
-		Debug.Log("Try tar " + _target);
-		if (_target != null)
+        if (_target != null)
         {
             if (!_target.IsTargetable && !canGetDead) return null;
 
@@ -425,55 +427,78 @@ public abstract class Skill : NetworkBehaviour
         return null;
     }
 
-	public Character GetTargetCharacter(bool canGetDead = false)
-	{
-        Debug.Log("Try char" + _target);
-		if (_target != null)
-		{
-			if (!_target.IsTargetable && !canGetDead) return null;
+    public Character GetTargetCharacter(bool canGetDead = false)
+    {
+        if (_target != null)
+        {
+            if (!_target.IsTargetable && !canGetDead) return null;
 
-			return (Character)_target;
-		}
-		return null;
-	}
+            return (Character)_target;
+        }
+        return null;
+    }
 
-	public void SetTargetCharacter(Character character)
+    public Character GetTempTargetCharacter(bool canGetDead = false)
+    {
+        if (_tempTarget != null)
+        {
+            if (!_tempTarget.IsTargetable && !canGetDead) return null;
+
+            return (Character)_tempTarget;
+        }
+        return null;
+    }
+
+    public void SetTargetCharacter(Character character)
     {
         _target = character;
     }
 
-	public void SetTarget(ITargetable character)
-	{
-		_target = character;
-	}
+    public void SetTarget(ITargetable character)
+    {
+        if (character == null)
+            return;
 
-	protected void FindTarget(bool canTargetHimself = false, bool canTargetDead = false)
+        _target = character;
+    }
+
+    public void ClearTempTarget()
+    {
+        _tempTarget = null;
+    }
+
+    protected void FindTarget(bool canTargetHimself = false, bool canTargetDead = false)
     {
         if (canTargetDead)
         {
-            _target = GetCloserTargets(GetMousePoint(), Radius, canTargetHimself)[0];
+            if (GetCloserTargets(GetMousePoint(), Radius, canTargetHimself) != null)
+                _tempTarget = GetCloserTargets(GetMousePoint(), Radius, canTargetHimself)[0];
         }
         else
         {
-            _target = GetCloserTargets(GetMousePoint(), Radius, canTargetHimself).FirstOrDefault(target => target.IsTargetable);
-		}
-	}
+            //Debug.Log()
+            if (GetCloserTargets(GetMousePoint(), Radius, canTargetHimself) != null)
+                _tempTarget = GetCloserTargets(GetMousePoint(), Radius, canTargetHimself).FirstOrDefault(target => target.IsTargetable);
+        }
+    }
 
-	protected void FindTargetCharacter(bool canTargetHimself = false, bool canTargetDead = false)
-	{
-		if (canTargetDead)
-		{
-			_target = GetCloserTargetsCharacter(GetMousePoint(), Radius, canTargetHimself)[0];
-		}
-		else
-		{
-			_target = GetCloserTargetsCharacter(GetMousePoint(), Radius, canTargetHimself).FirstOrDefault(target => target.IsTargetable);
-		}
-	}
-
-	public void ClearTarget()
+    protected void FindTargetCharacter(bool canTargetHimself = false, bool canTargetDead = false)
     {
-        _target = null; 
+        if (canTargetDead)
+        {
+            if (GetCloserTargets(GetMousePoint(), Radius, canTargetHimself) != null)
+                _tempTarget = GetCloserTargetsCharacter(GetMousePoint(), Radius, canTargetHimself)[0];
+        }
+        else
+        {
+            if (GetCloserTargets(GetMousePoint(), Radius, canTargetHimself) != null)
+                _tempTarget = GetCloserTargetsCharacter(GetMousePoint(), Radius, canTargetHimself).FirstOrDefault(target => target.IsTargetable);
+        }
+    }
+
+    public void ClearTarget()
+    {
+        _target = null;
     }
 
     public void EnableSkillBoost()
@@ -497,10 +522,10 @@ public abstract class Skill : NetworkBehaviour
     {
         if (_isPreparing == false)
         {
-            foreach(var skillCost in _skillEnergyCosts)
+            foreach (var skillCost in _skillEnergyCosts)
             {
-				//var currentResourceValue = _hero.Resources.Where(r => r.Type == skillCost.resourceType);
-				var resource = _hero.Resources.First(r => r.Type == skillCost.resourceType);
+                //var currentResourceValue = _hero.Resources.Where(r => r.Type == skillCost.resourceType);
+                var resource = _hero.Resources.First(r => r.Type == skillCost.resourceType);
                 resource.PhantomValueShow(skillCost.resourceCost);
             }
             _actionWrapperForPreparingCoroutine = StartCoroutine(ActionWrapperForPreparingJob());
@@ -570,7 +595,7 @@ public abstract class Skill : NetworkBehaviour
 
                 if (_targetInfoQueue.Count > 0)
                 {
-                   if (targetInfo.GetTargets().Count > 0)
+                    if (targetInfo.GetTargets().Count > 0)
                     {
                         var target = (Character)targetInfo.GetTargets()[0];
                         _hero.Move.LookAtTransform(target.transform);
@@ -598,15 +623,15 @@ public abstract class Skill : NetworkBehaviour
 
     public bool TryCancel(bool foceCancel = false)
     {
-		foreach (var skillCost in _skillEnergyCosts)
-		{
-			//var currentResourceValue = _hero.Resources.Where(r => r.Type == skillCost.resourceType);
-			var resource = _hero.Resources.First(r => r.Type == skillCost.resourceType);
-			resource.PhantomValueShow(0);
-			//resourse.
-		}
+        foreach (var skillCost in _skillEnergyCosts)
+        {
+            //var currentResourceValue = _hero.Resources.Where(r => r.Type == skillCost.resourceType);
+            var resource = _hero.Resources.First(r => r.Type == skillCost.resourceType);
+            resource.PhantomValueShow(0);
+            //resourse.
+        }
 
-		if (foceCancel || _isCanCancle)
+        if (foceCancel || _isCanCancle)
         {
             Canceled?.Invoke();
             if (_isAutoMode) _hero.Move.CanMove = true;
@@ -916,7 +941,7 @@ public abstract class Skill : NetworkBehaviour
         {
             _skillRender.StopDrawLineForZone();
         }
-        
+
 
         /*if (true)
 		{
@@ -953,22 +978,22 @@ public abstract class Skill : NetworkBehaviour
         return TryPayCost(_skillEnergyCosts, startCooldown);
     }
 
-   /* protected IDamageable GetRaycastTarget(bool isCanTargetHimself = false)
-    {
-        return _hero.TargetSeeker.GetRaycastTarget(this, isCanTargetHimself);
-	}*/
+    /* protected IDamageable GetRaycastTarget(bool isCanTargetHimself = false)
+     {
+         return _hero.TargetSeeker.GetRaycastTarget(this, isCanTargetHimself);
+     }*/
 
     public List<ITargetable> GetCloserTargets(Vector3 position, float radius, bool isCanTargetHimself = false)
     {
         return _hero.TargetSeeker.GetCloserTargets(position, radius, isCanTargetHimself);
     }
 
-	public List<Character> GetCloserTargetsCharacter(Vector3 position, float radius, bool isCanTargetHimself = false)
-	{
-		return _hero.TargetSeeker.GetCloserTargetsCharacter(position, radius, isCanTargetHimself);
-	}
+    public List<Character> GetCloserTargetsCharacter(Vector3 position, float radius, bool isCanTargetHimself = false)
+    {
+        return _hero.TargetSeeker.GetCloserTargetsCharacter(position, radius, isCanTargetHimself);
+    }
 
-	protected bool IsTargetInRadius(float radius, Transform target)
+    protected bool IsTargetInRadius(float radius, Transform target)
     {
         if (target == null)
             return false;
@@ -1063,21 +1088,21 @@ public abstract class Skill : NetworkBehaviour
         return Vector3.zero;
     }
 
-	/*protected TargetToShot GetTarget(bool isCanTargetHimself = false)
+    /*protected TargetToShot GetTarget(bool isCanTargetHimself = false)
 	{
 		return _hero.TargetSeeker.GetTarget(_click, ClickPoint, _skillType, Radius, this, isCanTargetHimself);
 	}*/
 
-	protected ITargetable ClosedTarget(bool isCanTargetHimself = false)
-	{
-		return _hero.TargetSeeker.ClosedTarget(isCanTargetHimself);
-	}
-	protected Character ClosedTargetCharacter(bool isCanTargetHimself = false)
-	{
-		return _hero.TargetSeeker.ClosedTargetCharacter(isCanTargetHimself);
-	}
+    protected ITargetable ClosedTarget(bool isCanTargetHimself = false)
+    {
+        return _hero.TargetSeeker.ClosedTarget(isCanTargetHimself);
+    }
+    protected Character ClosedTargetCharacter(bool isCanTargetHimself = false)
+    {
+        return _hero.TargetSeeker.ClosedTargetCharacter(isCanTargetHimself);
+    }
 
-	public bool TryUseCharge()
+    public bool TryUseCharge()
     {
         if (_isUseCharges == false)
             return true;
@@ -1167,22 +1192,22 @@ public abstract class Skill : NetworkBehaviour
 
     private void OnClickCanceled()
     {
-		_click = TypeClick.None;
+        _click = TypeClick.None;
     }
 
     private void OnShiftClick()
     {
-		_click = TypeClick.ShiftLMB;
+        _click = TypeClick.ShiftLMB;
     }
 
     private void OnCtrlClick()
     {
-		_click = TypeClick.CtrlLMB;
+        _click = TypeClick.CtrlLMB;
     }
 
     private void OnSpaceClick()
     {
-		_click = TypeClick.SpaceLMB;
+        _click = TypeClick.SpaceLMB;
     }
 
     private void ReductionCooldownForCharge(int index, float reductionTime)
@@ -1327,6 +1352,7 @@ public abstract class Skill : NetworkBehaviour
         }
 
         PreparingSuccess?.Invoke(this);
+        ClearTempTarget();
         _isPreparing = false;
         StopAutoDraw();
 
@@ -1545,14 +1571,14 @@ public abstract class Skill : NetworkBehaviour
         InputHandler.OnSpacetLeftMouse += OnSpaceClick;
 
         //cancelled
-        
+
         InputHandler.OnClickCanceled += OnClickCanceled;
         InputHandler.OnShiftLeftMouseCanceled += OnClickCanceled;
         InputHandler.OnSwitchAutoModeCanceled += OnClickCanceled;
         InputHandler.OnSpacetLeftMouseCanceled += OnClickCanceled;
 
     }
-    
+
     private void UnSubscribeClickEvents()
     {
         InputHandler.OnClick -= OnClick;

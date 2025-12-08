@@ -26,6 +26,9 @@ public class TargetInfo
 
     public void AddTarget(ITargetable target)
     {
+        if (target == null)
+            return;
+
         _targets.Add(target); 
     }
 
